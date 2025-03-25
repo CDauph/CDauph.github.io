@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fishy Business</title>
+    <link rel="icon" type="image/x-icon" href="favicon.png">
+    <link rel="stylesheet" href="styles.css">
+
+</head>
+
+<body>
+
+    <audio id="backgroundMusic" loop>
+        <source src="backgroundMusic.wav" type="audio/wav">
+    </audio>
+    <audio id="bell">
+        <source src="bell.wav" type="audio/wav">
+    </audio>
+    <audio id="bottle">
+        <source src="bottle.wav" type="audio/wav">
+    </audio>
+    <audio id="button">
+        <source src="button.wav" type="audio/wav">
+    </audio>
+    <audio id="horn">
+        <source src="horn.wav" type="audio/wav">
+    </audio>
+    <audio id="register">
+        <source src="register.wav" type="audio/wav">
+    </audio>
+    <audio id="bubble1">
+        <source src="bubble1.wav" type="audio/wav">
+    </audio>
+    <audio id="bubble2">
+        <source src="bubble2.wav" type="audio/wav">
+    </audio>
+    <audio id="bubble3">
+        <source src="bubble3.wav" type="audio/wav">
+    </audio>
+
+
+    <div id="game-container">
+
+        <img id="background" src="Gulf.png" alt="Background Image" >
+        <button id="bottleButton"></button>
+        <button id="incrementButton" style="background-image: url(Rowboat.png); width: 300px; height: 200px;">
+            <div id="people">
+                <img id="captain" src="Captain.png" alt="Captain Image" style="top: -50px";> 
+                <img id="tyler" src="Tyler.png" alt="Tyler Image" style="top: -50px; opacity: 0;" > 
+            </div>
+        </button>
+        <div class="status-container">
+            <div id="price-multiplier">Price Multiplier: 100%</div>
+            <div id="money">$1000</div>
+            <span id="quantityText">Quantity: <span id="currentQuantity">0</span> / <span id="capacity">200</span></span>
+            <div id="fish-price">Fish Price: $10</div>
+        </div>
+        <button id="upgrade-button" >
+            <img src="Artboard1.png" alt="Upgrade Icon" width="100" height="150"% > 
+            <div id="upgrade-text">UPGRADE</div>
+        </button>
+        <div id="employees-popup">
+            <p>Manage Employees</p>
+            <button id="hire-button">
+                <p id="hireText">Hire ($50)</p>
+            </button>
+            <p id="empCount">Employees: <span id="employee-count">0</span></p>
+            <button id="boat-button">
+                <img
+                <p id="upgrText">Upgr. Boat ($1000)</p>
+                </button>
+
+            <p>Boat Level: <span id="boat-level">0</span></p>
+            <button id="close-popup">Close</button>
+        </div>
+        <div id="ocean">
+            <img src="Wave.png" id="wave1">
+        </div>
+        <canvas id="stock-graph"></canvas>
+
+       
+        <div id="sell-fish-popup">
+            <p>How many fish would you like to sell?</p>
+            <input type="number" id="fish-to-sell" min="0" value="0">
+
+            <p>
+                <span id="boat-fee-container">Boat Fee: $<span id="boat-fee">0</span></span><br>
+                <span id="employee-fee-container">Employee Fee: $<span id="employee-fee">0</span></span>
+            </p>
+
+            <button id="sell-button">Complete</button>
+        </div>
+
+
+        <div id="over-capacity">
+            <p>You don't have that many fish!</p>
+            <button id="close-over-capacity">Close</button>
+        </div>
+
+        <div id="game-over" style="opacity: 0;">
+            <p id="loseMessage">You've lost the game!</p>
+            <button id="restart-button">Restart Game</button>
+        </div>
+
+        <div id="ocean-choice-popup">
+            <p>Choose an ocean:</p>
+            <div class="ocean-option" id="ocean-option-1">
+                <p>Stay in Current Ocean</p>
+                <p>Price per fish: <span id="adjusted-price-range">$3 - 6</span></p>
+                <p>Fish gain rate: 1 fish/sec</p>
+                <p>Cost to go: Free</p>
+            </div>
+            <div class="ocean-option" id="ocean-option-2">
+                <p>Mediterranean Ocean</p>
+                <p>Price per fish: $5-8</p>
+                <p>Fish gain rate: 2 fish/sec</p>
+                <p>Cost to go: $1000</p>
+            </div>
+            <div class="ocean-option" id="ocean-option-3">
+                <p>Arctic Ocean</p>
+                <p>Price per fish: $7-10</p>
+                <p>Fish gain rate: 3 fish/sec</p>
+                <p>Cost to go: $1500</p>
+            </div>
+        </div>
+
+    </div>
+    <script src="boatclicker.js"></script>
+    <script>
+        window.onload = function() {
+            const backgroundMusic = document.getElementById("backgroundMusic");
+            backgroundMusic.play();
+        };
+
+        const canvas = document.getElementById("stock-graph");
+        const ctx = canvas.getContext("2d");
+        canvas.width = canvas.offsetWidth;
+        canvas.height = canvas.offsetHeight;
+
+
+        let money = 500;
+
+        let employees = 0;
+        let boatlvl = 1;
+        const upgradeButton = document.getElementById("upgrade-button");
+        const employeesPopup = document.getElementById("employees-popup");
+        const hireButton = document.getElementById("hire-button");
+        const boatButton = document.getElementById("boat-button");
+        const employeeCount = document.getElementById("employee-count");
+        const boatLevel = document.getElementById("boat-level");
+        const closePopupButton = document.getElementById("close-popup");
+        let fishQuantity = 0;
+        let fishPopulation = 250; 
+        let totalFishSold = 0; 
+        const pricesArraySize = 100;
+        let oceanLevel = 1;
+        let capacity = 200;
+
+        let priceLowerBound = 3; 
+        let priceUpperBound = 6; 
+
+
+        let prices = Array.from({ length: pricesArraySize }, () =>
+
+            Math.random() * (priceUpperBound - priceLowerBound) + priceLowerBound
+        );
+
+        let currentX = 0;
+        let isPaused = false;
+
+        let sellingPoint = null;
+
+        let priceAdjustment = 1; 
+
+
+        const fishPriceElement = document.getElementById("fish-price");
+        const moneyElement = document.getElementById("money");
+        const bfeesElement = document.getElementById("bfees");
+        const efeesElement = document.getElementById("efees");
+        const quantityText = document.getElementById("quantityText");
+        const sellFishPopup = document.getElementById("sell-fish-popup");
+        const fishToSellInput = document.getElementById("fish-to-sell");
+        const sellButton = document.getElementById("sell-button");
+        const incrementButton = document.getElementById("incrementButton");
+        const oceanChoicePopup = document.getElementById("ocean-choice-popup");
+        const adjustedPriceRange = document.getElementById("adjusted-price-range");
+      
+        const bell = document.getElementById("bell");
+        const bottle = document.getElementById("bottle");
+        const button = document.getElementById("button");
+        const register = document.getElementById("register");
+
+
+        const oceans = [
+            { pricePerFish: 3, fishGainRate: 1, cost: 0 }, 
+            { pricePerFish: 5, fishGainRate: 2, cost: 1000 },
+            { pricePerFish: 7, fishGainRate: 3, cost: 1500 }
+        ];
+
+       
+        const xScale = canvas.width / (pricesArraySize - 1);
+
+       
+        function updateMoneyDisplay() {
+            moneyElement.textContent = `$${money.toFixed(2)}`;
+            checkIfShipSinks();
+        }
+
+        function checkIfShipSinks() {
+            if (money < 0) {
+                isPaused = true;
+                horn.play();
+                incrementButton.style.display = "none";
+                stopGame();
+                
+                stopBottleAnimation();
+                showGameOverPopup();
+            }
+        }
+
+        function updateMultiplier(){
+            const priceMultiplierElement = document.getElementById("price-multiplier");
+            const multiplier = Math.floor(priceAdjustment * 100);
+            priceMultiplierElement.textContent = `Price Multiplier: ${multiplier}%`;
+        }
+
+        function stopGame() {
+            clearInterval(fishGainInterval); 
+            isPaused = true;
+        }
+
+        function showGameOverPopup() {
+            const gameOverPopup = document.getElementById("game-over");
+            document.getElementById("game-over").style.opacity = "1"; 
+            gameOverPopup.style.display = "block"; 
+        }
+
+
+
+        const restartButton = document.getElementById("restart-button");
+        restartButton.addEventListener("click", () => {
+            location.reload(); 
+        });
+
+        function updateQuantityDisplay() {
+            document.getElementById("currentQuantity").textContent = fishQuantity;
+            document.getElementById("capacity").textContent = capacity;
+        }
+
+        function updateUDisplays() {
+            employeeCount.textContent = employees;
+            boatLevel.textContent = boatlvl;
+            if(employees == 1) {
+                document.getElementById("tyler").style.opacity = "1";
+            }
+            if(boatlvl == 2) {
+                document.getElementById("incrementButton").style.backgroundImage = "url(Sailboat.png)"; 
+                document.getElementById("incrementButton").style.width = "400px";
+                document.getElementById("incrementButton").style.height = "300px";
+                document.getElementById("captain").style.top = "-20px";
+                document.getElementById("tyler").style.top = "-20px";
+            }
+
+        }
+
+
+        function drawGraph() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const verticalOffset = 50;
+            for (let i = 1; i < currentX; i++) {
+                let x1 = (i - 1) * xScale;
+                let x2 = i * xScale;
+
+                let y1 = canvas.height - (prices[i - 1] / priceUpperBound) * canvas.height + verticalOffset;
+                let y2 = canvas.height - (prices[i] / priceUpperBound) * canvas.height + verticalOffset;
+                ctx.strokeStyle = prices[i] < prices[i - 1] ? "red"  : "#7ddd3e";
+                ctx.lineWidth = 5;
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.stroke();
+            }
+            drawPriceLines();
+
+        }
+
+        function drawCurrentPriceLine() {
+            let scaledX = currentX * xScale;
+            ctx.strokeStyle = "red";
+            ctx.beginPath();
+            ctx.moveTo(scaledX, 0);
+            ctx.lineTo(scaledX, canvas.height);
+            ctx.stroke();
+        }
+
+
+        function drawPriceLines() {
+            const importantPoints = [25, 75];
+
+            importantPoints.forEach((point) => {
+                let scaledX = (point / 100) * canvas.width;
+                ctx.strokeStyle = "yellow"; 
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(scaledX, 0);
+                ctx.lineTo(scaledX, canvas.height);
+                ctx.stroke();
+            });
+        }
+
+        let sellingPoints = [];
+
+        function updateGraph() {
+            if (isPaused) return;
+            if (currentX < pricesArraySize - 1) {
+                currentX += 1;
+            } else {
+                priceAdjustment = (fishPopulation - totalFishSold) / fishPopulation; 
+                const adjustedPriceMin = priceLowerBound * priceAdjustment;
+                const adjustedPriceMax = priceUpperBound * priceAdjustment;
+
+                
+                adjustedPriceRange.textContent = `$${adjustedPriceMin.toFixed(2)} - ${adjustedPriceMax.toFixed(2)}`;
+
+                
+                oceanChoicePopup.style.display = "block";
+                isPaused = true;
+
+                
+                currentX = 0;
+                console.log(priceLowerBound, priceUpperBound);
+                prices = Array.from({ length: pricesArraySize }, () =>
+                    Math.random() * (priceUpperBound - priceLowerBound) + priceLowerBound
+                );
+            }
+
+            
+            if (currentX === 25 || currentX === 75) {
+                openSellPopup();
+                bell.volume = 0.6;
+                bell.play();
+                isPaused = true;
+                sellFishPopup.style.display = "block"; 
+
+
+            }
+
+            drawGraph(); 
+            drawCurrentPriceLine(); 
+            drawPriceLines(); 
+
+            let currentPrice = prices[Math.floor(currentX)];
+            if (typeof currentPrice === "number") {
+                fishPriceElement.textContent = `Fish Price: $${currentPrice.toFixed(2)}`;
+            }
+
+            updateMultiplier();
+        }
+
+        upgradeButton.addEventListener("click", () => {
+            button.play();
+            isPaused = true;
+            employeesPopup.style.display = "block";
+
+            isPaused = true; 
+
+            updateUDisplays();
+        });
+
+        closePopupButton.addEventListener("click", () => {
+            button.play();
+            employeesPopup.style.display = "none";
+            isPaused = false;
+            console.log(isPaused)
+        });
+
+        hireButton.addEventListener("click", () => {
+            if (money >= 50) {
+                money -= 50;
+                employees += 1;
+                register.play();
+            } else {
+                
+            }
+            updateMoneyDisplay();
+            updateUDisplays();
+        });
+
+        boatButton.addEventListener("click", () => {
+            if (money >= 1000) {
+                money -= 1000;
+                boatlvl += 1;
+                capacity += 100;
+                register.play();
+            } else {
+                
+            }
+            updateMoneyDisplay();
+            updateUDisplays();
+        });
+        function updateFeesDisplay() {
+            let boatFee = boatlvl * 100;
+            let employeeFee = employees * 30;
+            document.getElementById("boat-fee").textContent = boatFee;
+            document.getElementById("employee-fee").textContent = employeeFee;
+        }
+
+        function openSellPopup() {
+            updateFeesDisplay(); 
+            sellFishPopup.style.display = "block";
+            isPaused = true;
+            sellingPoint = { x: currentX };
+        }
+
+        sellButton.addEventListener("click", () => {
+            const fishToSell = parseInt(fishToSellInput.value);
+            if (fishToSell > fishQuantity) {
+                const overCapacity = document.getElementById("over-capacity");
+                overCapacity.style.display = "block";
+                return;
+            }
+            const overCapacity = document.getElementById("over-capacity");
+                overCapacity.style.display = "none";
+            let boatFee = boatlvl * 100;
+            let employeeFee = employees * 30;
+
+            money -= boatFee;
+            money -= employeeFee;
+
+            if (fishToSell > 0 && fishToSell <= fishQuantity) {
+                const currentPrice = prices[Math.floor(currentX)];
+                money += (fishToSell * currentPrice);
+                fishQuantity -= fishToSell;
+                totalFishSold += fishToSell; 
+
+
+                
+                priceAdjustment = (fishPopulation - totalFishSold) / fishPopulation;
+                for (let i = currentX; i < pricesArraySize; i++) {
+
+                    prices[i] = priceAdjustment * prices[i]; 
+
+                }
+            }
+            const register = document.getElementById("register");
+            register.play();
+
+
+            updateMoneyDisplay(); 
+            updateQuantityDisplay(); 
+            updateMultiplier();
+
+            sellFishPopup.style.display = "none"; 
+            
+            isPaused = false;
+            if (money < 0) {
+                isPaused = true;
+            } 
+        });
+
+        document.getElementById("close-over-capacity").addEventListener("click", () => {
+            button.play();
+            document.getElementById("over-capacity").style.display = "none";
+        });
+
+        function randomBubble() {
+            const bubbleSounds = [
+                document.getElementById("bubble1"),
+                document.getElementById("bubble2"),
+                document.getElementById("bubble3")
+            ];
+
+            const randomIndex = Math.floor(Math.random() * bubbleSounds.length);
+            const selectedSound = bubbleSounds[randomIndex];
+
+            selectedSound.play();
+        }
+
+        incrementButton.addEventListener("click", () => {
+            if (fishQuantity < capacity) {
+                fishQuantity += 1;
+                updateQuantityDisplay();
+                randomBubble();
+            }
+
+        });
+
+
+        let fishGainInterval = setInterval(() => {
+            if (!isPaused && fishQuantity < capacity) {
+                fishQuantity += 1 + employees;
+                updateQuantityDisplay();
+            }
+        }, (1000 / oceanLevel));
+
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Digit8') { 
+                money = 99999;
+                updateMoneyDisplay();
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Digit9') { 
+                fishQuantity = 99999;
+
+                updateQuantityDisplay();
+            }
+        });
+
+
+        document.querySelectorAll(".ocean-option").forEach((option, index) => {
+            option.addEventListener("click", () => {
+                button.play();
+                const selectedOcean = oceans[index];
+                if (money >= selectedOcean.cost) {
+                    if (index !== 0) {
+                        if (index == 1) {
+                        document.getElementById("background").src = 'Med.png'; 
+                        currentOcean = "med";
+                        priceLowerBound = 5;
+                        priceUpperBound = 8;
+                        prices = Array.from({ length: pricesArraySize }, () =>
+                    Math.random() * (priceUpperBound - priceLowerBound) + priceLowerBound
+                );
+                        
+                        }
+                        if (index == 2) {
+                            document.getElementById("background").src = 'Arctic.png';
+                            currentOcean = "arctic";
+                            priceLowerBound = 7;
+                            priceUpperBound = 10;
+                            prices = Array.from({ length: pricesArraySize }, () =>
+                                Math.random() * (priceUpperBound - priceLowerBound) + priceLowerBound
+                            );
+                        }
+                        money -= selectedOcean.cost;
+                    }
+                    priceAdjustment = 1;
+                    priceLowerBound = selectedOcean.pricePerFish;
+                    priceUpperBound = selectedOcean.pricePerFish + 3; 
+                    fishPopulation = 250; 
+                    totalFishSold = 0; 
+
+                    
+                    if (index === 0) {
+                        for (let i = 0; i < pricesArraySize; i++) {
+                            prices[i] = priceAdjustment * prices[i];
+                        }
+                    }
+
+                    updateMoneyDisplay();
+                    updateMultiplier();
+                    oceanChoicePopup.style.display = "none";
+                    isPaused = false;
+                } else {
+                    alert("Not enough money to go to this ocean!");
+                }
+            });
+        });
+
+        updateMoneyDisplay();
+        updateQuantityDisplay();
+        drawGraph();
+        drawCurrentPriceLine();
+
+
+        setInterval(updateGraph, 500);
+
+
+
+    </script>
+</body>
+
+</html>
